@@ -153,6 +153,17 @@
       font-size: 1.7rem;
       line-height: 1;
       margin-bottom: 0.15rem;
+      display: grid;
+      place-items: center;
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+    .card .icon img {
+      width: 40px;
+      height: 40px;
+      border-radius: 0.55rem;
+      object-fit: contain;
+      background: transparent;
     }
     .card .title {
       font-size: 0.98rem;
@@ -405,6 +416,37 @@
     }
   }
 
+
+  function pickFallbackEmoji(hostname, name) {
+    var s = String(hostname || '') + ' ' + String(name || '');
+    s = s.toLowerCase();
+    var rules = [
+      [/youtube/, '▶️'],
+      [/netflix/, '🎬'],
+      [/music|spotify|음악/, '🎵'],
+      [/mail|gmail|메일/, '✉️'],
+      [/bank|navyfederal|은행/, '🏦'],
+      [/shop|amazon|coupang|쇼핑/, '🛒'],
+      [/news|뉴스/, '📰'],
+      [/weather|날씨/, '🌤️'],
+      [/map|지도/, '🗺️'],
+      [/calendar|캘린더/, '📅'],
+      [/github|code/, '💻'],
+      [/army|\.mil\b|군/, '🪖'],
+      [/ai|chatgpt|grok|claude/, '🤖'],
+      [/game|게임/, '🎮'],
+      [/sports|nfl|espn|스포츠/, '🏈'],
+      [/finance|stock|주식/, '📈'],
+      [/translate|번역/, '🌐'],
+      [/book|책/, '📚'],
+      [/video/, '🎥']
+    ];
+    for (var i = 0; i < rules.length; i++) {
+      if (rules[i][0].test(s)) return rules[i][1];
+    }
+    return '🔗';
+  }
+
   function render() {
     var list = loadLinks();
     var parent = addBtn.parentNode;
@@ -418,10 +460,31 @@
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
 
+      var host = '';
+      try { host = new URL(item.url).hostname || ''; } catch (e) { host = ''; }
+      var hostLabel = host.replace(/^www\./i, '') || '내 링크';
+      var fallbackEmoji = pickFallbackEmoji(host, item.name);
+
       var icon = document.createElement('span');
       icon.className = 'icon';
       icon.setAttribute('aria-hidden', 'true');
-      icon.textContent = '🔗';
+
+      if (host) {
+        var img = document.createElement('img');
+        img.alt = '';
+        img.width = 40;
+        img.height = 40;
+        img.decoding = 'async';
+        img.referrerPolicy = 'no-referrer';
+        img.src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=128';
+        img.addEventListener('error', function () {
+          while (icon.firstChild) icon.removeChild(icon.firstChild);
+          icon.textContent = fallbackEmoji;
+        });
+        icon.appendChild(img);
+      } else {
+        icon.textContent = fallbackEmoji;
+      }
 
       var title = document.createElement('span');
       title.className = 'title';
@@ -429,11 +492,7 @@
 
       var desc = document.createElement('span');
       desc.className = 'desc';
-      try {
-        desc.textContent = new URL(item.url).hostname;
-      } catch (e) {
-        desc.textContent = '내 링크';
-      }
+      desc.textContent = hostLabel;
 
       var del = document.createElement('button');
       del.type = 'button';
