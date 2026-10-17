@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>뉴스 뷰어</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f4f5;
+      --fg: #18181b;
+      --card: #ffffff;
+      --border: #d4d4d8;
+      --muted: #71717a;
+      --accent: #27272a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #18181b;
+        --fg: #fafafa;
+        --card: #27272a;
+        --border: #3f3f46;
+        --muted: #a1a1aa;
+        --accent: #fafafa;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    main {
+      width: min(28rem, 100%);
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 650;
+      margin: 0 0 0.35rem;
+    }
+    p {
+      margin: 0 0 1.5rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    a {
+      display: block;
+      padding: 1.15rem 1.25rem;
+      border-radius: 0.85rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 1.15rem;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    a:active { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>뉴스 뷰어</h1>
+    <p>원하는 뷰어를 선택하세요</p>
+    <div class="links">
+      <a href="news.html">뉴스 뷰어</a>
+      <a href="ai.html">AI 뉴스 뷰어</a>
+      <a href="https://home-viewer.adameunsuhki.workers.dev/" rel="noopener">홈 뷰어 🔒</a>
+    </div>
+  </main>
+</body>
+</html>
