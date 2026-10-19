@@ -406,6 +406,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        min-width: 0;
         background: var(--bg-soft);
         border: 2px solid var(--line);
         border-radius: 14px;
@@ -413,9 +414,10 @@
         font-weight: 700;
         font-size: 16.5px;
       }
-      .stage-row .r-emoji { font-size: 24px; }
-      .stage-row .r-score { margin-left: auto; font-weight: 800; white-space: nowrap; }
-      .stage-row .r-face { font-size: 22px; }
+      .stage-row .r-emoji { font-size: 24px; flex: 0 0 auto; }
+      .stage-row .r-name { flex: 1 0 auto; min-width: 0; }
+      .stage-row .r-score { flex: 0 1 auto; min-width: 0; margin-left: auto; font-weight: 800; text-align: right; }
+      .stage-row .r-face { font-size: 22px; flex: 0 0 auto; }
       .fun-note {
         text-align: center;
         font-size: 13.5px;
@@ -1324,7 +1326,7 @@
             face = pct === 1 ? "🤩" : pct >= 0.5 ? "😊" : "💪";
             scoreText = state.scores[i] + " / " + state.counts[i] + " correct";
           }
-          row.innerHTML = "<span class='r-emoji'>" + st.emoji + "</span><span>" +
+          row.innerHTML = "<span class='r-emoji'>" + st.emoji + "</span><span class='r-name'>" +
             escapeHtml(st.en.replace(/^Stage \d+ · /, "")) + "</span>" +
             "<span class='r-score'>" + escapeHtml(scoreText) + "</span><span class='r-face'>" + face + "</span>";
           rows.appendChild(row);
