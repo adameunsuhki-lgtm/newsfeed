@@ -1,0 +1,1271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>노라 한국어 놀이 퀴즈</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Jua&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #fff7ea;
+        --bg-soft: #ffedd3;
+        --card: #ffffff;
+        --ink: #33302b;
+        --ink-soft: #6f675c;
+        --line: #f0ddba;
+        --coral: #ff6b57;
+        --coral-dark: #e04a36;
+        --sun: #ffb52e;
+        --sun-soft: #ffe9bd;
+        --sky: #3fa7d6;
+        --sky-soft: #d8f0fb;
+        --mint: #35b586;
+        --mint-soft: #d9f5e8;
+        --pink: #ff8fab;
+        --pink-soft: #ffe3ec;
+        --good: #1e9e6a;
+        --good-bg: #dcf7ea;
+        --oops-bg: #ffe9e4;
+        --shadow: 0 6px 0 rgba(120, 84, 20, 0.14);
+        --radius: 22px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #221d18;
+          --bg-soft: #2e2620;
+          --card: #322a23;
+          --ink: #f7efe2;
+          --ink-soft: #c9bba6;
+          --line: #4a3f33;
+          --coral: #ff7d68;
+          --coral-dark: #ff957f;
+          --sun: #ffc44d;
+          --sun-soft: #4d3d1c;
+          --sky: #5db9e8;
+          --sky-soft: #274b5e;
+          --mint: #4cc795;
+          --mint-soft: #23473a;
+          --pink: #ffa4bc;
+          --pink-soft: #54303d;
+          --good: #5ed6a4;
+          --good-bg: #234a3a;
+          --oops-bg: #57332c;
+          --shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: "Baloo 2", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .kr { font-family: "Jua", "Baloo 2", sans-serif; letter-spacing: 0.01em; }
+      .wrap {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 18px 16px 48px;
+      }
+
+      /* ---------- progress ---------- */
+      .progress-zone { margin: 6px 0 18px; }
+      .progress-track {
+        height: 16px;
+        background: var(--bg-soft);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: repeating-linear-gradient(45deg, var(--sun) 0 14px, #ffc95e 14px 28px);
+        border-radius: 999px;
+        transition: width 0.45s ease;
+      }
+      @media (prefers-color-scheme: dark) {
+        .progress-fill { background: repeating-linear-gradient(45deg, var(--sun) 0 14px, #d99a26 14px 28px); }
+      }
+      .stage-dots {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        gap: 4px;
+      }
+      .stage-dot {
+        flex: 1;
+        text-align: center;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        opacity: 0.55;
+      }
+      .stage-dot .dot-emoji { display: block; font-size: 19px; line-height: 1.2; }
+      .stage-dot.active { opacity: 1; color: var(--ink); }
+      .stage-dot.done { opacity: 1; color: var(--good); }
+
+      /* ---------- cards & screens ---------- */
+      .card {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 26px 22px;
+      }
+      .screen { display: none; }
+      .screen.on { display: block; animation: pop 0.3s ease; }
+      @keyframes pop {
+        from { transform: scale(0.97); opacity: 0.4; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .screen.on { animation: none; }
+        .progress-fill { transition: none; }
+      }
+
+      .hero-emoji { font-size: 74px; text-align: center; line-height: 1.15; }
+      h1 {
+        font-family: "Jua", sans-serif;
+        font-size: 34px;
+        line-height: 1.25;
+        text-align: center;
+        margin: 10px 0 4px;
+      }
+      .hero-sub {
+        text-align: center;
+        font-size: 19px;
+        font-weight: 700;
+        margin: 0 0 14px;
+      }
+      .hero-text {
+        text-align: center;
+        font-size: 16.5px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        margin: 0 auto 20px;
+        max-width: 42ch;
+      }
+      .stage-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 24px;
+      }
+      .chip {
+        font-weight: 700;
+        font-size: 14.5px;
+        padding: 7px 13px;
+        border-radius: 999px;
+        border: 2px solid var(--line);
+        background: var(--bg-soft);
+      }
+      .chip.c1 { background: var(--sun-soft); }
+      .chip.c2 { background: var(--sky-soft); }
+      .chip.c3 { background: var(--pink-soft); }
+      .chip.c4 { background: var(--mint-soft); }
+      .chip.c5 { background: var(--sun-soft); }
+
+      .big-btn {
+        display: block;
+        width: 100%;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 21px;
+        font-weight: 800;
+        color: #fff;
+        background: var(--coral);
+        border-radius: 18px;
+        padding: 17px 20px;
+        box-shadow: 0 5px 0 var(--coral-dark);
+        transition: transform 0.08s ease, box-shadow 0.08s ease;
+      }
+      .big-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--coral-dark); }
+      .big-btn.sky { background: var(--sky); box-shadow: 0 5px 0 #2b7ca8; }
+      .big-btn.sky:active { box-shadow: 0 1px 0 #2b7ca8; }
+      .big-btn.mint { background: var(--mint); box-shadow: 0 5px 0 #238562; }
+      .big-btn.mint:active { box-shadow: 0 1px 0 #238562; }
+      .ghost-btn {
+        display: block;
+        width: 100%;
+        margin-top: 12px;
+        border: 2px solid var(--line);
+        background: transparent;
+        color: var(--ink-soft);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 16px;
+        padding: 13px 18px;
+      }
+
+      /* ---------- questions ---------- */
+      .q-tag {
+        display: inline-block;
+        font-size: 13.5px;
+        font-weight: 800;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: var(--bg-soft);
+        border: 2px solid var(--line);
+        margin-bottom: 14px;
+      }
+      .q-ask {
+        font-size: 19px;
+        font-weight: 700;
+        margin: 0 0 16px;
+        line-height: 1.45;
+      }
+      .q-big-emoji { font-size: 92px; text-align: center; line-height: 1.2; margin: 6px 0 18px; }
+      .q-sentence {
+        font-family: "Jua", sans-serif;
+        font-size: 30px;
+        line-height: 1.5;
+        text-align: center;
+        background: var(--bg-soft);
+        border: 2px dashed var(--line);
+        border-radius: 16px;
+        padding: 18px 14px;
+        margin: 4px 0 20px;
+        word-break: keep-all;
+      }
+      .story-box {
+        font-family: "Jua", sans-serif;
+        font-size: 21.5px;
+        line-height: 1.75;
+        background: var(--bg-soft);
+        border: 2px dashed var(--line);
+        border-radius: 16px;
+        padding: 18px 18px 12px;
+        margin: 4px 0 20px;
+        word-break: keep-all;
+      }
+      .story-box p { margin: 0 0 10px; }
+
+      .choices { display: grid; gap: 12px; }
+      .choice {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+        background: var(--card);
+        border: 3px solid var(--line);
+        border-radius: 16px;
+        padding: 16px 18px;
+        min-height: 64px;
+        transition: border-color 0.12s ease, background 0.12s ease, transform 0.08s ease;
+      }
+      .choice:active { transform: scale(0.98); }
+      .choice .letter {
+        flex: 0 0 auto;
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        background: var(--bg-soft);
+        border: 2px solid var(--line);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; font-weight: 800;
+      }
+      .choice.kr-choice { font-family: "Jua", sans-serif; font-size: 24px; }
+      .choice.right { border-color: var(--good); background: var(--good-bg); }
+      .choice.right .letter { background: var(--good); border-color: var(--good); color: #fff; }
+      .choice.wrong { border-color: var(--coral); background: var(--oops-bg); }
+      .choice.wrong .letter { background: var(--coral); border-color: var(--coral); color: #fff; }
+      .choice.dim { opacity: 0.55; }
+      .choice:disabled { cursor: default; }
+
+      .feedback {
+        display: none;
+        margin-top: 18px;
+        border-radius: 16px;
+        padding: 15px 17px;
+        font-size: 17.5px;
+        font-weight: 700;
+        line-height: 1.5;
+      }
+      .feedback.show { display: block; }
+      .feedback.good { background: var(--good-bg); }
+      .feedback.oops { background: var(--oops-bg); }
+      .feedback .kr-inline { font-family: "Jua", sans-serif; font-size: 19px; }
+      .next-zone { display: none; margin-top: 16px; }
+      .next-zone.show { display: block; }
+
+      /* ---------- listening & speaking ---------- */
+      .listen-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 22px;
+        font-weight: 800;
+        color: #fff;
+        background: var(--sky);
+        border: none;
+        border-radius: 18px;
+        padding: 22px 18px;
+        box-shadow: 0 5px 0 #2b7ca8;
+        margin: 8px 0 10px;
+      }
+      .listen-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #2b7ca8; }
+      .listen-btn .spk { font-size: 30px; }
+      .listen-btn.playing { background: var(--sun); box-shadow: 0 5px 0 #d18f14; color: #4a3403; }
+      .listen-hint { text-align: center; color: var(--ink-soft); font-size: 15px; font-weight: 600; margin: 0 0 18px; }
+      .hidden-word {
+        font-family: "Jua", sans-serif;
+        font-size: 34px;
+        text-align: center;
+        letter-spacing: 0.35em;
+        color: var(--ink-soft);
+        margin: 8px 0 4px;
+      }
+
+      .mic-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 22px;
+        font-weight: 800;
+        color: #fff;
+        background: var(--coral);
+        border: none;
+        border-radius: 18px;
+        padding: 22px 18px;
+        box-shadow: 0 5px 0 var(--coral-dark);
+        margin: 10px 0;
+      }
+      .mic-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--coral-dark); }
+      .mic-btn.recording {
+        background: var(--coral-dark);
+        animation: pulse 1s ease infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+      }
+      @media (prefers-reduced-motion: reduce) { .mic-btn.recording { animation: none; } }
+      .heard-box {
+        display: none;
+        background: var(--bg-soft);
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 14px 17px;
+        margin-top: 14px;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+      .heard-box.show { display: block; }
+      .heard-box .heard-kr { font-family: "Jua", sans-serif; font-size: 22px; display: block; margin-top: 4px; }
+      .heard-box .help-steps { margin: 10px 0 8px; padding-left: 22px; text-align: left; }
+      .heard-box .help-steps li { margin: 5px 0; }
+      .speak-note {
+        font-size: 14.5px;
+        color: var(--ink-soft);
+        text-align: center;
+        line-height: 1.5;
+        margin: 14px 0 0;
+        font-weight: 600;
+      }
+
+      /* ---------- stage intro ---------- */
+      .stage-hero { text-align: center; }
+      .stage-hero .big-emoji { font-size: 80px; line-height: 1.2; }
+      .stage-hero h2 { font-family: "Jua", sans-serif; font-size: 29px; margin: 8px 0 2px; }
+      .stage-hero .en { font-size: 19px; font-weight: 800; margin: 0 0 10px; }
+      .stage-hero p { color: var(--ink-soft); font-size: 16.5px; line-height: 1.55; margin: 0 auto 22px; max-width: 40ch; font-weight: 600; }
+
+      /* ---------- result ---------- */
+      .result-badge { text-align: center; }
+      .result-badge .medal { font-size: 88px; line-height: 1.15; }
+      .result-level-kr { font-family: "Jua", sans-serif; font-size: 31px; margin: 6px 0 0; }
+      .result-level-en { font-size: 20px; font-weight: 800; margin: 2px 0 8px; }
+      .stars { font-size: 34px; letter-spacing: 4px; margin: 6px 0 12px; }
+      .result-msg { font-size: 17px; line-height: 1.6; color: var(--ink-soft); font-weight: 600; max-width: 44ch; margin: 0 auto 22px; text-align: center; }
+      .stage-results { display: grid; gap: 10px; margin-bottom: 22px; }
+      .stage-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--bg-soft);
+        border: 2px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 15px;
+        font-weight: 700;
+        font-size: 16.5px;
+      }
+      .stage-row .r-emoji { font-size: 24px; }
+      .stage-row .r-score { margin-left: auto; font-weight: 800; white-space: nowrap; }
+      .stage-row .r-face { font-size: 22px; }
+      .fun-note {
+        text-align: center;
+        font-size: 13.5px;
+        color: var(--ink-soft);
+        margin-top: 16px;
+        line-height: 1.5;
+        font-weight: 600;
+      }
+
+      /* ---------- confetti stars ---------- */
+      .burst {
+        position: fixed;
+        pointer-events: none;
+        font-size: 26px;
+        z-index: 50;
+        animation: burst-fly 0.9s ease-out forwards;
+      }
+      @keyframes burst-fly {
+        from { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+        to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.6); opacity: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) { .burst { display: none; } }
+
+      .top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      .top-title { font-family: "Jua", sans-serif; font-size: 17px; }
+      .q-count { font-size: 14px; font-weight: 800; color: var(--ink-soft); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top-row">
+        <div class="top-title">🇰🇷 노라의 한국어 놀이</div>
+        <div class="q-count" id="qCount"></div>
+      </div>
+
+      <div class="progress-zone" id="progressZone" hidden>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="stage-dots" id="stageDots"></div>
+      </div>
+
+      <!-- ============ START ============ -->
+      <section class="screen card on" id="scr-start">
+        <div class="hero-emoji">🎈🇰🇷🎈</div>
+        <h1>노라의 한국어 놀이 퀴즈</h1>
+        <p class="hero-sub">Norah's Korean Play Quiz</p>
+        <p class="hero-text">
+          Let's play with Korean! You'll guess words, read sentences and a tiny story,
+          listen to Korean voices, and even try speaking Korean yourself.
+          There are no wrong answers to be scared of — just have fun and try your best! 🌟
+        </p>
+        <div class="stage-chips">
+          <span class="chip c1">🍎 Words</span>
+          <span class="chip c2">📖 Sentences</span>
+          <span class="chip c3">🐶 A Tiny Story</span>
+          <span class="chip c4">👂 Listening</span>
+          <span class="chip c5">🎤 Speaking</span>
+        </div>
+        <button class="big-btn" id="btnStart">Start Playing! ▶</button>
+        <p class="fun-note">This is a just-for-fun quiz to see how much Korean you know — not an official test.</p>
+      </section>
+
+      <!-- ============ STAGE INTRO ============ -->
+      <section class="screen card" id="scr-intro">
+        <div class="stage-hero">
+          <div class="big-emoji" id="introEmoji">🍎</div>
+          <h2 id="introKr">1단계 · 단어</h2>
+          <p class="en" id="introEn">Stage 1 · Words</p>
+          <p id="introText"></p>
+          <button class="big-btn" id="btnIntroGo">Let's Go! ▶</button>
+        </div>
+      </section>
+
+      <!-- ============ MULTIPLE CHOICE ============ -->
+      <section class="screen card" id="scr-quiz">
+        <span class="q-tag" id="qTag"></span>
+        <p class="q-ask" id="qAsk"></p>
+        <div id="qPrompt"></div>
+        <div class="choices" id="qChoices"></div>
+        <div class="feedback" id="qFeedback"></div>
+        <div class="next-zone" id="qNextZone">
+          <button class="big-btn mint" id="btnNext">Next ▶</button>
+        </div>
+      </section>
+
+      <!-- ============ LISTENING ============ -->
+      <section class="screen card" id="scr-listen">
+        <span class="q-tag" id="lTag"></span>
+        <p class="q-ask">Tap the button and listen carefully. What did you hear? 👂</p>
+        <div class="hidden-word" id="lHidden">? ? ?</div>
+        <button class="listen-btn" id="btnListen"><span class="spk">🔊</span><span id="listenLabel">Play the Korean!</span></button>
+        <p class="listen-hint">You can tap it as many times as you like.</p>
+        <div class="choices" id="lChoices"></div>
+        <div class="feedback" id="lFeedback"></div>
+        <div class="next-zone" id="lNextZone">
+          <button class="big-btn mint" id="btnListenNext">Next ▶</button>
+        </div>
+      </section>
+
+      <!-- ============ SPEAKING ============ -->
+      <section class="screen card" id="scr-speak">
+        <span class="q-tag" id="sTag"></span>
+        <p class="q-ask">First, listen. Then tap the microphone and say it in Korean! 🎤</p>
+        <div class="q-sentence" id="sSentence"></div>
+        <button class="listen-btn" id="btnSpeakListen"><span class="spk">🔊</span><span>Listen first</span></button>
+        <button class="mic-btn" id="btnMic"><span>🎤</span><span id="micLabel">Tap and say it!</span></button>
+        <div class="heard-box" id="heardBox"></div>
+        <div class="feedback" id="sFeedback"></div>
+        <div class="next-zone" id="sNextZone">
+          <button class="big-btn mint" id="btnSpeakNext">Next ▶</button>
+        </div>
+        <button class="ghost-btn" id="btnSpeakSkip">Skip this one</button>
+        <p class="speak-note">The microphone listens with computer ears, and computer ears sometimes hear kids' voices wrong. If it looks funny, don't worry — what matters is that you said it out loud! 💪</p>
+      </section>
+
+      <!-- ============ RESULT ============ -->
+      <section class="screen card" id="scr-result">
+        <div class="result-badge">
+          <div class="medal" id="rMedal">🏅</div>
+          <div class="stars" id="rStars">⭐⭐⭐</div>
+          <p class="result-level-kr kr" id="rLevelKr"></p>
+          <p class="result-level-en" id="rLevelEn"></p>
+          <p class="result-msg" id="rMsg"></p>
+        </div>
+        <div class="stage-results" id="rStages"></div>
+        <button class="big-btn" id="btnAgain">Play Again! 🔁</button>
+        <p class="fun-note">Great job finishing the whole quiz! This was a just-for-fun check — keep playing with Korean a little every day and it will grow and grow. 🌱</p>
+      </section>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ================= DATA ================= */
+      var STAGES = [
+        { id: "words",    emoji: "🍎", kr: "1단계 · 단어",     en: "Stage 1 · Words",
+          intro: "Look at the picture and pick the right Korean word. Easy peasy to start!" },
+        { id: "sentence", emoji: "📖", kr: "2단계 · 문장 읽기", en: "Stage 2 · Sentences",
+          intro: "Read the Korean sentence and pick what it means. Sound out the words slowly — you can do it!" },
+        { id: "story",    emoji: "🐶", kr: "3단계 · 이야기",   en: "Stage 3 · A Tiny Story",
+          intro: "Read this short story about Minji and her puppy, then answer two questions about it." },
+        { id: "listen",   emoji: "👂", kr: "4단계 · 듣기",     en: "Stage 4 · Listening",
+          intro: "Tap the speaker button to hear Korean, then pick what it means. Listen as many times as you want!" },
+        { id: "speak",    emoji: "🎤", kr: "5단계 · 말하기",   en: "Stage 5 · Speaking",
+          intro: "Last stage! Listen to the Korean, then say it out loud into the microphone. Be brave and speak up!" }
+      ];
+
+      var QUESTIONS = [
+        /* ---- Stage 1: words ---- */
+        { stage: 0, type: "choice", tag: "🍎 Words",
+          ask: "Which Korean word matches this picture?",
+          prompt: { kind: "emoji", text: "🍎" },
+          choices: ["바나나", "사과", "포도", "오렌지"], answer: 1, krChoices: true,
+          cheer: "Yes! <span class='kr-inline'>사과</span> means apple!" },
+        { stage: 0, type: "choice", tag: "🍎 Words",
+          ask: "Which Korean word matches this picture?",
+          prompt: { kind: "emoji", text: "🐶" },
+          choices: ["고양이", "새", "강아지", "물고기"], answer: 2, krChoices: true,
+          cheer: "That's right! <span class='kr-inline'>강아지</span> means puppy!" },
+        { stage: 0, type: "choice", tag: "🍎 Words",
+          ask: "Which Korean word matches this picture?",
+          prompt: { kind: "emoji", text: "🚗" },
+          choices: ["자동차", "기차", "비행기", "버스"], answer: 0, krChoices: true,
+          cheer: "Vroom vroom! <span class='kr-inline'>자동차</span> means car!" },
+        { stage: 0, type: "choice", tag: "🍎 Words",
+          ask: "Which Korean word matches this picture?",
+          prompt: { kind: "emoji", text: "📚" },
+          choices: ["연필", "가방", "의자", "책"], answer: 3, krChoices: true,
+          cheer: "Correct! <span class='kr-inline'>책</span> means book!" },
+
+        /* ---- Stage 2: sentences ---- */
+        { stage: 1, type: "choice", tag: "📖 Sentences",
+          ask: "Read the Korean sentence. What does it mean?",
+          prompt: { kind: "sentence", text: "나는 물을 마셔요." },
+          choices: ["I eat rice.", "I drink water.", "I read a book.", "I go to school."], answer: 1,
+          cheer: "<span class='kr-inline'>물</span> is water, and <span class='kr-inline'>마셔요</span> means drink. Nice reading!" },
+        { stage: 1, type: "choice", tag: "📖 Sentences",
+          ask: "Read the Korean sentence. What does it mean?",
+          prompt: { kind: "sentence", text: "오늘은 비가 와요." },
+          choices: ["It's snowing today.", "It's windy today.", "It's raining today.", "It's sunny today."], answer: 2,
+          cheer: "<span class='kr-inline'>비</span> means rain. Great job!" },
+        { stage: 1, type: "choice", tag: "📖 Sentences",
+          ask: "Read the Korean sentence. What is happening?",
+          prompt: { kind: "sentence", text: "동생은 공원에서 축구를 해요." },
+          choices: ["My little brother or sister plays soccer at the park.",
+                    "My friend swims at the pool.",
+                    "My mom cooks at home.",
+                    "My teacher reads in class."], answer: 0,
+          cheer: "<span class='kr-inline'>공원</span> is a park and <span class='kr-inline'>축구</span> is soccer. You read a whole sentence!" },
+
+        /* ---- Stage 3: story ---- */
+        { stage: 2, type: "choice", tag: "🐶 A Tiny Story",
+          ask: "Who went to the park with Minji?",
+          prompt: { kind: "story" },
+          choices: ["Her cat", "Her puppy", "Her friend", "Her teacher"], answer: 1,
+          cheer: "Yes! Minji went with her puppy, <span class='kr-inline'>뽀삐</span>!" },
+        { stage: 2, type: "choice", tag: "🐶 A Tiny Story",
+          ask: "What did Minji give Bbobbi after they came home?",
+          prompt: { kind: "story" },
+          choices: ["Milk", "A ball", "A book", "Water"], answer: 3,
+          cheer: "Right! After playing, Minji gave Bbobbi some <span class='kr-inline'>물</span> (water)." },
+
+        /* ---- Stage 4: listening ---- */
+        { stage: 3, type: "listen", tag: "👂 Listening",
+          speak: "감사합니다",
+          choices: ["Hello", "Thank you", "Goodbye", "I'm sorry"], answer: 1,
+          cheer: "<span class='kr-inline'>감사합니다</span> means thank you!" },
+        { stage: 3, type: "listen", tag: "👂 Listening",
+          speak: "저는 열 살이에요",
+          choices: ["I am ten years old.", "I am happy.", "I like school.", "I have a dog."], answer: 0,
+          cheer: "<span class='kr-inline'>열 살</span> means ten years old. Great listening!" },
+        { stage: 3, type: "listen", tag: "👂 Listening",
+          speak: "내일 학교에 가요",
+          choices: ["I ate lunch today.", "I go to school tomorrow.", "I play at the park.", "I read a book at night."], answer: 1,
+          cheer: "<span class='kr-inline'>내일</span> means tomorrow and <span class='kr-inline'>학교</span> means school. Super ears!" },
+
+        /* ---- Stage 5: speaking ---- */
+        { stage: 4, type: "speak", tag: "🎤 Speaking",
+          sentence: "안녕하세요", hint: "Say hello in Korean!" },
+        { stage: 4, type: "speak", tag: "🎤 Speaking",
+          sentence: "저는 노라예요", hint: "This means \"I am Norah.\" Say your own name in Korean!" },
+        { stage: 4, type: "speak", tag: "🎤 Speaking",
+          sentence: "사과가 맛있어요", hint: "This means \"Apples are yummy.\" Give it a try!" }
+      ];
+
+      var STORY_HTML =
+        "<p>민지는 작은 강아지 뽀삐와 살아요.</p>" +
+        "<p>오늘 아침, 민지는 뽀삐와 함께 공원에 갔어요. 뽀삐는 공을 보고 신나게 달렸어요.</p>" +
+        "<p>집에 돌아와서 민지는 뽀삐에게 물을 주었어요.</p>";
+
+      var TOTAL = QUESTIONS.length; // 15
+
+      /* ================= STATE ================= */
+      var state = {
+        idx: 0,
+        scores: [0, 0, 0, 0, 0],       // correct per stage (speak stage: attempts rated good/close)
+        counts: [0, 0, 0, 0, 0],       // questions per stage
+        speakResults: [],              // 'great' | 'close' | 'tried' | 'skipped'
+        answered: false
+      };
+      QUESTIONS.forEach(function (q) { state.counts[q.stage]++; });
+
+      /* ================= HELPERS ================= */
+      function $(id) { return document.getElementById(id); }
+      function show(id) {
+        var screens = document.querySelectorAll(".screen");
+        for (var i = 0; i < screens.length; i++) screens[i].classList.remove("on");
+        $(id).classList.add("on");
+        window.scrollTo(0, 0);
+      }
+      function starBurst(x, y) {
+        var glyphs = ["⭐", "🌟", "✨", "💛"];
+        for (var i = 0; i < 8; i++) {
+          var s = document.createElement("span");
+          s.className = "burst";
+          s.textContent = glyphs[i % glyphs.length];
+          var ang = (Math.PI * 2 * i) / 8 + Math.random() * 0.4;
+          var dist = 70 + Math.random() * 60;
+          s.style.left = x + "px";
+          s.style.top = y + "px";
+          s.style.setProperty("--dx", Math.cos(ang) * dist + "px");
+          s.style.setProperty("--dy", Math.sin(ang) * dist - 30 + "px");
+          s.style.setProperty("--rot", (Math.random() * 160 - 80) + "deg");
+          document.body.appendChild(s);
+          (function (el) { setTimeout(function () { el.remove(); }, 950); })(s);
+        }
+      }
+      function burstFrom(el) {
+        var r = el.getBoundingClientRect();
+        starBurst(r.left + r.width / 2, r.top + r.height / 2);
+      }
+
+      /* ================= TTS ================= */
+      var koVoice = null;
+      function pickVoice() {
+        if (!("speechSynthesis" in window)) return;
+        var voices = window.speechSynthesis.getVoices();
+        for (var i = 0; i < voices.length; i++) {
+          if (voices[i].lang && voices[i].lang.toLowerCase().indexOf("ko") === 0) { koVoice = voices[i]; break; }
+        }
+      }
+      if ("speechSynthesis" in window) {
+        pickVoice();
+        window.speechSynthesis.onvoiceschanged = pickVoice;
+      }
+      function speakKorean(text, onend) {
+        if (!("speechSynthesis" in window)) { if (onend) onend(); return; }
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = "ko-KR";
+        if (koVoice) u.voice = koVoice;
+        u.rate = 0.88;
+        if (onend) { u.onend = onend; u.onerror = onend; }
+        window.speechSynthesis.speak(u);
+      }
+
+      /* ================= PROGRESS ================= */
+      function buildDots() {
+        var zone = $("stageDots");
+        zone.innerHTML = "";
+        STAGES.forEach(function (st, i) {
+          var d = document.createElement("div");
+          d.className = "stage-dot";
+          d.id = "dot-" + i;
+          d.innerHTML = "<span class='dot-emoji'>" + st.emoji + "</span>" + st.en.replace(/^Stage \d+ · /, "");
+          zone.appendChild(d);
+        });
+      }
+      function updateProgress() {
+        $("progressFill").style.width = Math.round((state.idx / TOTAL) * 100) + "%";
+        var curStage = state.idx < TOTAL ? QUESTIONS[state.idx].stage : 4;
+        STAGES.forEach(function (st, i) {
+          var d = $("dot-" + i);
+          d.classList.toggle("active", i === curStage && state.idx < TOTAL);
+          d.classList.toggle("done", i < curStage || state.idx >= TOTAL);
+        });
+        $("qCount").textContent = state.idx < TOTAL ? "Question " + (state.idx + 1) + " of " + TOTAL : "All done! 🎉";
+      }
+
+      /* ================= FLOW ================= */
+      var lastStageShown = -1;
+
+      function goNext() {
+        state.idx++;
+        state.answered = false;
+        if (state.idx >= TOTAL) { showResult(); return; }
+        var q = QUESTIONS[state.idx];
+        if (q.stage !== lastStageShown) {
+          lastStageShown = q.stage;
+          showIntro(q.stage);
+        } else {
+          renderQuestion();
+        }
+        updateProgress();
+      }
+
+      function showIntro(stageIdx) {
+        var st = STAGES[stageIdx];
+        $("introEmoji").textContent = st.emoji;
+        $("introKr").textContent = st.kr;
+        $("introEn").textContent = st.en;
+        $("introText").textContent = st.intro;
+        show("scr-intro");
+      }
+
+      function renderQuestion() {
+        var q = QUESTIONS[state.idx];
+        if (q.type === "choice") renderChoice(q);
+        else if (q.type === "listen") renderListen(q);
+        else if (q.type === "speak") renderSpeak(q);
+        updateProgress();
+      }
+
+      /* ---------- choice questions ---------- */
+      function renderChoice(q) {
+        $("qTag").textContent = q.tag;
+        $("qAsk").textContent = q.ask;
+        var prompt = $("qPrompt");
+        prompt.innerHTML = "";
+        if (q.prompt.kind === "emoji") {
+          var d = document.createElement("div");
+          d.className = "q-big-emoji";
+          d.textContent = q.prompt.text;
+          prompt.appendChild(d);
+        } else if (q.prompt.kind === "sentence") {
+          var s = document.createElement("div");
+          s.className = "q-sentence kr";
+          s.textContent = q.prompt.text;
+          prompt.appendChild(s);
+        } else if (q.prompt.kind === "story") {
+          var b = document.createElement("div");
+          b.className = "story-box";
+          b.innerHTML = STORY_HTML;
+          prompt.appendChild(b);
+        }
+        buildChoices($("qChoices"), q, $("qFeedback"), $("qNextZone"));
+        show("scr-quiz");
+      }
+
+      function buildChoices(container, q, feedbackEl, nextZone) {
+        container.innerHTML = "";
+        feedbackEl.className = "feedback";
+        feedbackEl.innerHTML = "";
+        nextZone.classList.remove("show");
+        var letters = ["A", "B", "C", "D"];
+        q.choices.forEach(function (text, i) {
+          var btn = document.createElement("button");
+          btn.className = "choice" + (q.krChoices ? " kr-choice" : "");
+          btn.innerHTML = "<span class='letter'>" + letters[i] + "</span><span></span>";
+          btn.querySelector("span:last-child").textContent = text;
+          btn.addEventListener("click", function () {
+            if (state.answered) return;
+            state.answered = true;
+            var all = container.querySelectorAll(".choice");
+            for (var j = 0; j < all.length; j++) {
+              all[j].disabled = true;
+              if (j === q.answer) all[j].classList.add("right");
+              else if (j === i) all[j].classList.add("wrong");
+              else all[j].classList.add("dim");
+            }
+            if (i === q.answer) {
+              state.scores[q.stage]++;
+              feedbackEl.className = "feedback show good";
+              feedbackEl.innerHTML = "🎉 " + q.cheer;
+              burstFrom(btn);
+            } else {
+              feedbackEl.className = "feedback show oops";
+              feedbackEl.innerHTML = "Good try! The right answer is <b>" +
+                escapeHtml(q.choices[q.answer]) + "</b>. " + q.cheer;
+            }
+            nextZone.classList.add("show");
+          });
+          container.appendChild(btn);
+        });
+      }
+
+      function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      /* ---------- listening ---------- */
+      function renderListen(q) {
+        $("lTag").textContent = q.tag;
+        $("lHidden").textContent = "? ? ?";
+        $("lHidden").style.letterSpacing = "0.35em";
+        $("listenLabel").textContent = "Play the Korean!";
+        $("btnListen").classList.remove("playing");
+        buildChoices($("lChoices"), q, $("lFeedback"), $("lNextZone"));
+        // reveal the Korean text inside the feedback once answered
+        var fb = $("lFeedback");
+        var origShow = null;
+        $("btnListen").onclick = function () {
+          $("btnListen").classList.add("playing");
+          $("listenLabel").textContent = "Listen…";
+          speakKorean(q.speak, function () {
+            $("btnListen").classList.remove("playing");
+            $("listenLabel").textContent = "Play it again!";
+          });
+        };
+        // after answering, show what the sentence was
+        var observer = new MutationObserver(function () {
+          if (fb.classList.contains("show")) {
+            $("lHidden").textContent = q.speak;
+            $("lHidden").style.letterSpacing = "0.02em";
+            observer.disconnect();
+          }
+        });
+        observer.observe(fb, { attributes: true, attributeFilter: ["class"] });
+        show("scr-listen");
+      }
+
+      /* ---------- speaking ---------- */
+      var recognition = null;
+      var listening = false;
+
+      function normalize(s) {
+        return (s || "").replace(/[\s.,!?~'"“”‘’·…]/g, "").toLowerCase();
+      }
+      function levenshtein(a, b) {
+        var m = a.length, n = b.length;
+        if (!m) return n;
+        if (!n) return m;
+        var prev = [], cur = [], i, j;
+        for (j = 0; j <= n; j++) prev[j] = j;
+        for (i = 1; i <= m; i++) {
+          cur[0] = i;
+          for (j = 1; j <= n; j++) {
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+          }
+          var tmp = prev; prev = cur; cur = tmp;
+        }
+        return prev[n];
+      }
+      function similarity(a, b) {
+        var na = normalize(a), nb = normalize(b);
+        if (!na || !nb) return 0;
+        if (na === nb) return 1;
+        var dist = levenshtein(na, nb);
+        return Math.max(0, 1 - dist / Math.max(na.length, nb.length));
+      }
+
+      function renderSpeak(q) {
+        $("sTag").textContent = q.tag;
+        $("sSentence").textContent = q.sentence;
+        $("heardBox").className = "heard-box";
+        $("heardBox").innerHTML = "";
+        $("sFeedback").className = "feedback";
+        $("sFeedback").innerHTML = "";
+        $("sNextZone").classList.remove("show");
+        $("btnSpeakSkip").style.display = "block";
+        $("micLabel").textContent = "Tap and say it!";
+        $("btnMic").classList.remove("recording");
+
+        var hint = document.createElement("p");
+        hint.className = "listen-hint";
+        hint.textContent = q.hint;
+        var old = $("sSentence").nextElementSibling;
+        // place hint right under the sentence box (only once per render)
+        var existing = document.getElementById("sHint");
+        if (existing) existing.remove();
+        hint.id = "sHint";
+        $("sSentence").parentNode.insertBefore(hint, $("sSentence").nextSibling);
+
+        $("btnSpeakListen").onclick = function () { speakKorean(q.sentence); };
+
+        $("btnMic").onclick = function () { startListening(q); };
+
+        // If the microphone was already blocked for this page, warn right
+        // away instead of letting the mic button look broken.
+        try {
+          if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: "microphone" }).then(function (st) {
+              if (st.state === "denied" && !state.answered) {
+                var hb = $("heardBox");
+                hb.className = "heard-box show";
+                hb.innerHTML = "🎤 Heads up: the microphone is blocked for this page. Tap the red microphone button and I'll show you how a grown-up can turn it on!";
+              }
+            }).catch(function () {});
+          }
+        } catch (e) {}
+        $("btnSpeakSkip").onclick = function () {
+          if (state.answered) return;
+          state.answered = true;
+          state.speakResults.push("skipped");
+          finishSpeak(q, "That's okay! You can practice this one anytime. Tap Next to keep going. 🌈", false);
+        };
+        show("scr-speak");
+      }
+
+      function finishSpeak(q, msg, celebrate, el) {
+        var fb = $("sFeedback");
+        fb.className = "feedback show " + (celebrate ? "good" : "oops");
+        fb.innerHTML = msg;
+        $("sNextZone").classList.add("show");
+        $("btnSpeakSkip").style.display = "none";
+        if (celebrate && el) burstFrom(el);
+      }
+
+      /* Show a "say it yourself" credit button in the feedback area, for
+         times the microphone truly can't be used. */
+      function creditSpokenOffer(q) {
+        var fb = $("sFeedback");
+        fb.className = "feedback show good";
+        fb.innerHTML = "<button class='big-btn mint' id='btnSaidIt' type='button'>I said it out loud! ✅</button>";
+        $("btnSaidIt").onclick = function () {
+          if (state.answered) return;
+          state.answered = true;
+          state.speakResults.push("tried");
+          state.scores[q.stage]++;
+          fb.innerHTML = "Great job speaking Korean out loud! 🌟";
+          $("sNextZone").classList.add("show");
+          $("btnSpeakSkip").style.display = "none";
+          burstFrom($("btnMic"));
+        };
+      }
+
+      /* The browser blocked the microphone. Explain exactly how to allow
+         it, and offer the say-it-yourself credit so the quiz never jams. */
+      function showMicBlocked(q) {
+        var heardBox = $("heardBox");
+        heardBox.className = "heard-box show";
+        heardBox.innerHTML =
+          "🎤 The microphone is <b>blocked</b> right now, so I can't hear you yet. A grown-up can fix it like this:" +
+          "<ol class='help-steps'>" +
+          "<li>Tap the <b>🔒 lock</b> (or <b>ⓘ</b>) icon next to the page address — inside an app, look for <b>Site settings</b>.</li>" +
+          "<li>Find <b>Microphone</b> and choose <b>Allow</b>.</li>" +
+          "<li>Come back here and tap the red microphone button again.</li>" +
+          "</ol>" +
+          "Still stuck? If this page is open inside another app, opening it in the <b>Chrome</b> or <b>Safari</b> app usually fixes it. Or just say the sentence out loud and tap the button below! 😊";
+        creditSpokenOffer(q);
+      }
+
+      /* Microphone permission is asked for ONCE per session. After it is
+         granted, later speaking questions reuse it and start recognition
+         directly, so the browser's allow-prompt does not pop up again on
+         every question. */
+      var micPermissionGranted = false;
+
+      function startListening(q) {
+        if (state.answered || listening) return;
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { beginRecognition(q); return; }
+
+        // Already allowed earlier in this session — never ask again.
+        if (micPermissionGranted) { beginRecognition(q); return; }
+
+        // Check the current permission state without prompting. If the
+        // browser already remembers "granted" for this page, go straight
+        // to the recognizer instead of re-requesting via getUserMedia.
+        if (navigator.permissions && navigator.permissions.query) {
+          navigator.permissions.query({ name: "microphone" }).then(function (st) {
+            if (st.state === "granted") {
+              micPermissionGranted = true;
+              beginRecognition(q);
+            } else if (st.state === "denied") {
+              showMicBlocked(q);
+            } else {
+              askMicThenListen(q);
+            }
+          }).catch(function () { askMicThenListen(q); });
+        } else {
+          askMicThenListen(q);
+        }
+      }
+
+      /* First-time microphone request. SpeechRecognition on its own can
+         fail with "not-allowed" on embedded pages without ever showing
+         the browser's permission prompt, which looks like a dead button.
+         getUserMedia makes the browser actually ask. This runs only
+         until the permission is granted once; startListening skips it
+         from then on. */
+      function askMicThenListen(q) {
+        if (micPermissionGranted) { beginRecognition(q); return; }
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          $("micLabel").textContent = "Asking for the microphone… 🎤";
+          navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            // Permission granted — release the mic and let the recognizer use it.
+            var tracks = stream.getTracks();
+            for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+            micPermissionGranted = true;
+            $("micLabel").textContent = "Tap and say it!";
+            beginRecognition(q);
+          }).catch(function (err) {
+            $("micLabel").textContent = "Tap and say it!";
+            if (err && (err.name === "NotAllowedError" || err.name === "SecurityError")) {
+              showMicBlocked(q);
+            } else {
+              // No usable microphone on this device.
+              var heardBox = $("heardBox");
+              heardBox.className = "heard-box show";
+              heardBox.innerHTML = "This device doesn't have a microphone the page can use. Say <b>“" + escapeHtml(q.sentence) + "”</b> out loud anyway, then tap the button below! 😊";
+              creditSpokenOffer(q);
+            }
+          });
+        } else {
+          beginRecognition(q);
+        }
+      }
+
+      function beginRecognition(q) {
+        if (state.answered || listening) return;
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        var heardBox = $("heardBox");
+
+        if (!SR) {
+          // No speech recognition in this browser — let her self-check instead.
+          state.answered = true;
+          state.speakResults.push("tried");
+          state.scores[q.stage]++;
+          heardBox.className = "heard-box show";
+          heardBox.innerHTML = "This browser can't listen with a microphone. That's okay — if you said <span class='heard-kr kr'></span> out loud, you did it! 🎉";
+          heardBox.querySelector(".heard-kr").textContent = "“" + q.sentence + "”";
+          finishSpeak(q, "Great speaking! Saying it out loud is what counts. 🌟", true, $("btnMic"));
+          return;
+        }
+
+        recognition = new SR();
+        recognition.lang = "ko-KR";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 3;
+        listening = true;
+        $("btnMic").classList.add("recording");
+        $("micLabel").textContent = "Listening… say it now!";
+
+        var done = false;
+        var safetyTimer = null;
+        function wrap(fn) {
+          return function (ev) {
+            if (done) return;
+            done = true;
+            if (safetyTimer) clearTimeout(safetyTimer);
+            listening = false;
+            $("btnMic").classList.remove("recording");
+            $("micLabel").textContent = "Tap and say it!";
+            fn(ev);
+          };
+        }
+
+        recognition.onresult = wrap(function (ev) {
+          var best = "", bestSim = -1;
+          for (var r = 0; r < ev.results.length; r++) {
+            for (var a = 0; a < ev.results[r].length; a++) {
+              var t = ev.results[r][a].transcript;
+              var sim = similarity(t, q.sentence);
+              if (sim > bestSim) { bestSim = sim; best = t; }
+            }
+          }
+          state.answered = true;
+          heardBox.className = "heard-box show";
+          heardBox.innerHTML = "The microphone heard:<span class='heard-kr kr'></span>";
+          heardBox.querySelector(".heard-kr").textContent = "“" + best + "”";
+
+          if (bestSim >= 0.8) {
+            state.scores[q.stage]++;
+            state.speakResults.push("great");
+            finishSpeak(q, "🎉 WOW, perfect! You said <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b> just like a Korean speaker!", true, $("btnMic"));
+          } else if (bestSim >= 0.45) {
+            state.scores[q.stage]++;
+            state.speakResults.push("close");
+            finishSpeak(q, "🌟 Very close! The answer was <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b>. Your Korean sounds great!", true, $("btnMic"));
+          } else {
+            state.speakResults.push("tried");
+            finishSpeak(q, "💪 Good try for speaking up! The sentence was <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b>. Tap 🔊 to hear it once more and try again next time!", false);
+          }
+        });
+
+        recognition.onerror = wrap(function (ev) {
+          var err = ev && ev.error;
+          if (err === "not-allowed" || err === "service-not-allowed") {
+            showMicBlocked(q);
+          } else if (err === "network") {
+            heardBox.className = "heard-box show";
+            heardBox.innerHTML = "Listening needs the internet, and the connection hiccuped just now. Check the Wi-Fi and tap the microphone to try again! 📶";
+          } else if (err === "audio-capture") {
+            heardBox.className = "heard-box show";
+            heardBox.innerHTML = "This device doesn't have a microphone the page can use. Say <b>“" + escapeHtml(q.sentence) + "”</b> out loud anyway, then tap the button below! 😊";
+            creditSpokenOffer(q);
+          } else if (err === "no-speech") {
+            heardBox.className = "heard-box show";
+            heardBox.innerHTML = "I didn't hear anything that time. Tap the microphone and try again — speak nice and loud! 📣";
+          } else {
+            heardBox.className = "heard-box show";
+            heardBox.innerHTML = "Hmm, the microphone didn't catch that. Computer ears are silly sometimes! Tap the microphone and try once more, or tap Skip. 😊";
+          }
+        });
+
+        recognition.onend = function () {
+          if (!done) {
+            done = true;
+            if (safetyTimer) clearTimeout(safetyTimer);
+            listening = false;
+            $("btnMic").classList.remove("recording");
+            $("micLabel").textContent = "Tap and say it!";
+            if (!state.answered && !$("heardBox").classList.contains("show")) {
+              heardBox.className = "heard-box show";
+              heardBox.innerHTML = "I didn't hear anything that time. Tap the microphone and try again — speak nice and loud! 📣";
+            }
+          }
+        };
+
+        try {
+          recognition.start();
+          // Safety net: if the recognizer hangs with no result, stop it so
+          // the friendly "didn't hear anything" message appears.
+          safetyTimer = setTimeout(function () {
+            if (!done) { try { recognition.stop(); } catch (e) {} }
+          }, 12000);
+        } catch (e) {
+          listening = false;
+          $("btnMic").classList.remove("recording");
+          $("micLabel").textContent = "Tap and say it!";
+          heardBox.className = "heard-box show";
+          heardBox.innerHTML = "The microphone couldn't start just now. Tap it once more, or tap Skip to keep playing. 😊";
+        }
+      }
+
+      /* ================= RESULT ================= */
+      function stageCleared(i) {
+        return state.counts[i] > 0 && state.scores[i] >= Math.ceil(state.counts[i] / 2);
+      }
+
+      function showResult() {
+        updateProgress();
+        $("progressFill").style.width = "100%";
+
+        var level;
+        if (stageCleared(3) && stageCleared(2)) {
+          level = { medal: "🏆", kr: "이야기 마스터!", en: "Story Master!",
+            msg: "Amazing, Norah! You can read Korean stories and understand Korean voices. Your Korean is really growing — keep reading and listening every day!" };
+        } else if (stageCleared(2)) {
+          level = { medal: "🥇", kr: "이야기 읽는 스타!", en: "Story Reader Star!",
+            msg: "Wow! You read a whole Korean story and understood it. Sentences and stories are your superpower — a little more listening practice and you'll be a master!" };
+        } else if (stageCleared(1)) {
+          level = { medal: "🥈", kr: "문장 스타!", en: "Sentence Star!",
+            msg: "Great job! You can read Korean sentences and know what they mean. Keep practicing and soon stories will feel easy too!" };
+        } else if (stageCleared(0)) {
+          level = { medal: "🥉", kr: "단어 탐험가!", en: "Word Explorer!",
+            msg: "You know lots of Korean words already! Words are the building blocks — learn a few more and you'll start reading whole sentences." };
+        } else {
+          level = { medal: "🌱", kr: "한국어 새싹!", en: "Korean Sprout!",
+            msg: "Every Korean speaker started as a little sprout, just like this. You finished the whole quiz — that's the hardest part! Play again and watch yourself grow." };
+        }
+
+        var totalRight = state.scores[0] + state.scores[1] + state.scores[2] + state.scores[3];
+        var totalScored = state.counts[0] + state.counts[1] + state.counts[2] + state.counts[3];
+        var starCount = totalRight >= totalScored - 1 ? 3 : totalRight >= Math.ceil(totalScored * 0.6) ? 3 : totalRight >= Math.ceil(totalScored * 0.35) ? 2 : 1;
+        var stars = "";
+        for (var i = 0; i < 3; i++) stars += i < starCount ? "⭐" : "☆";
+
+        $("rMedal").textContent = level.medal;
+        $("rStars").textContent = stars;
+        $("rLevelKr").textContent = level.kr;
+        $("rLevelEn").textContent = level.en;
+        $("rMsg").textContent = level.msg;
+
+        var rows = $("rStages");
+        rows.innerHTML = "";
+        STAGES.forEach(function (st, i) {
+          var row = document.createElement("div");
+          row.className = "stage-row";
+          var face, scoreText;
+          if (i === 4) {
+            var great = state.speakResults.filter(function (x) { return x === "great"; }).length;
+            var close = state.speakResults.filter(function (x) { return x === "close"; }).length;
+            var tried = state.speakResults.filter(function (x) { return x === "tried"; }).length;
+            if (great + close === state.counts[4]) { face = "🤩"; scoreText = "Spoke every sentence!"; }
+            else if (great + close + tried > 0) { face = "😊"; scoreText = "Bravely spoke " + (great + close + tried) + " of " + state.counts[4]; }
+            else { face = "🌈"; scoreText = "Skipped — try next time!"; }
+          } else {
+            var pct = state.counts[i] ? state.scores[i] / state.counts[i] : 0;
+            face = pct === 1 ? "🤩" : pct >= 0.5 ? "😊" : "💪";
+            scoreText = state.scores[i] + " / " + state.counts[i] + " correct";
+          }
+          row.innerHTML = "<span class='r-emoji'>" + st.emoji + "</span><span>" +
+            escapeHtml(st.en.replace(/^Stage \d+ · /, "")) + "</span>" +
+            "<span class='r-score'>" + escapeHtml(scoreText) + "</span><span class='r-face'>" + face + "</span>";
+          rows.appendChild(row);
+        });
+
+        show("scr-result");
+        setTimeout(function () { burstFrom($("rMedal")); }, 250);
+      }
+
+      /* ================= WIRING ================= */
+      buildDots();
+      $("btnStart").addEventListener("click", function () {
+        $("progressZone").hidden = false;
+        lastStageShown = QUESTIONS[0].stage;
+        showIntro(QUESTIONS[0].stage);
+        updateProgress();
+        // warm up the voice list on a user gesture
+        pickVoice();
+      });
+      $("btnIntroGo").addEventListener("click", renderQuestion);
+      $("btnNext").addEventListener("click", goNext);
+      $("btnListenNext").addEventListener("click", goNext);
+      $("btnSpeakNext").addEventListener("click", goNext);
+      $("btnAgain").addEventListener("click", function () {
+        state.idx = 0;
+        state.scores = [0, 0, 0, 0, 0];
+        state.speakResults = [];
+        state.answered = false;
+        lastStageShown = QUESTIONS[0].stage;
+        showIntro(QUESTIONS[0].stage);
+        updateProgress();
+      });
+    </script>
+  </body>
+</html>
