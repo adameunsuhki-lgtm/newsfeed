@@ -874,6 +874,14 @@
       /* ---------- speaking ---------- */
       var recognition = null;
       var listening = false;
+      var micStarting = false;    // a permission request is in flight
+      var recWanted = false;      // she still wants to keep talking
+      var recFinalText = "";      // words heard for sure, kept across restarts
+      var recInterimText = "";    // words being spoken right now
+      var recTarget = null;       // the speaking question being answered
+      var recSilenceTimer = null;
+      var recHardTimer = null;
+      var recRestarts = 0;
 
       function normalize(s) {
         return (s || "").replace(/[\s.,!?~'"“”‘’·…]/g, "").toLowerCase();
@@ -902,6 +910,7 @@
       }
 
       function renderSpeak(q) {
+        cancelListening();
         $("sTag").textContent = q.tag;
         $("sSentence").textContent = q.sentence;
         $("heardBox").className = "heard-box";
@@ -925,7 +934,12 @@
 
         $("btnSpeakListen").onclick = function () { speakKorean(q.sentence); };
 
-        $("btnMic").onclick = function () { startListening(q); };
+        $("btnMic").onclick = function () {
+          // While recording, the same button becomes "I'm done!" so she
+          // can finish a long sentence with one more tap.
+          if (listening) { stopListening(true); return; }
+          startListening(q);
+        };
 
         // If the microphone was already blocked for this page, warn right
         // away instead of letting the mic button look broken.
@@ -979,6 +993,7 @@
       /* The browser blocked the microphone. Explain exactly how to allow
          it, and offer the say-it-yourself credit so the quiz never jams. */
       function showMicBlocked(q) {
+        micStarting = false;
         var heardBox = $("heardBox");
         heardBox.className = "heard-box show";
         heardBox.innerHTML =
@@ -999,7 +1014,8 @@
       var micPermissionGranted = false;
 
       function startListening(q) {
-        if (state.answered || listening) return;
+        if (state.answered || listening || micStarting) return;
+        micStarting = true;
         var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) { beginRecognition(q); return; }
 
@@ -1043,6 +1059,7 @@
             $("micLabel").textContent = "Tap and say it!";
             beginRecognition(q);
           }).catch(function (err) {
+            micStarting = false;
             $("micLabel").textContent = "Tap and say it!";
             if (err && (err.name === "NotAllowedError" || err.name === "SecurityError")) {
               showMicBlocked(q);
@@ -1060,6 +1077,7 @@
       }
 
       function beginRecognition(q) {
+        micStarting = false;
         if (state.answered || listening) return;
         var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         var heardBox = $("heardBox");
@@ -1076,103 +1094,176 @@
           return;
         }
 
-        recognition = new SR();
-        recognition.lang = "ko-KR";
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 3;
+        // Keep listening across pauses. With continuous listening OFF
+        // (the old setting), a phone stops the moment a child pauses
+        // between syllables, so only the first syllable is ever heard.
+        // Continuous mode + gathered-up results below let her say the
+        // whole sentence at her own pace.
+        recTarget = q;
+        recFinalText = "";
+        recInterimText = "";
+        recRestarts = 0;
+        recWanted = true;
         listening = true;
         $("btnMic").classList.add("recording");
-        $("micLabel").textContent = "Listening… say it now!";
+        $("micLabel").textContent = "Listening… tap again when you're done!";
 
-        var done = false;
-        var safetyTimer = null;
-        function wrap(fn) {
-          return function (ev) {
-            if (done) return;
-            done = true;
-            if (safetyTimer) clearTimeout(safetyTimer);
-            listening = false;
-            $("btnMic").classList.remove("recording");
-            $("micLabel").textContent = "Tap and say it!";
-            fn(ev);
-          };
+        // Long safety net: stop after 30 seconds no matter what, so the
+        // microphone never stays on forever.
+        if (recHardTimer) clearTimeout(recHardTimer);
+        recHardTimer = setTimeout(function () { stopListening(true); }, 30000);
+
+        startRecognitionOnce();
+      }
+
+      function startRecognitionOnce() {
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        var q = recTarget;
+        if (!SR || !q) return;
+        try {
+          recognition = new SR();
+        } catch (e) {
+          stopListening(false);
+          var hb0 = $("heardBox");
+          hb0.className = "heard-box show";
+          hb0.innerHTML = "The microphone couldn't start just now. Tap it once more, or tap Skip to keep playing. 😊";
+          return;
         }
+        recognition.lang = "ko-KR";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
 
-        recognition.onresult = wrap(function (ev) {
-          var best = "", bestSim = -1;
-          for (var r = 0; r < ev.results.length; r++) {
-            for (var a = 0; a < ev.results[r].length; a++) {
-              var t = ev.results[r][a].transcript;
-              var sim = similarity(t, q.sentence);
-              if (sim > bestSim) { bestSim = sim; best = t; }
+        recognition.onresult = function (ev) {
+          var finals = "", interim = "";
+          for (var r = ev.resultIndex; r < ev.results.length; r++) {
+            var res = ev.results[r];
+            // Keep the alternative that sounds most like the target
+            // sentence, like the quiz always did.
+            var bestAlt = res[0].transcript, bestSim = -1;
+            for (var a = 0; a < res.length; a++) {
+              var sim = similarity(res[a].transcript, q.sentence);
+              if (sim > bestSim) { bestSim = sim; bestAlt = res[a].transcript; }
             }
+            if (res.isFinal) finals += bestAlt;
+            else interim += bestAlt;
           }
-          state.answered = true;
-          heardBox.className = "heard-box show";
-          heardBox.innerHTML = "The microphone heard:<span class='heard-kr kr'></span>";
-          heardBox.querySelector(".heard-kr").textContent = "“" + best + "”";
+          if (finals) recFinalText += finals;
+          recInterimText = interim;
+          showHeardSoFar();
+          pokeSilenceTimer();
+        };
 
-          if (bestSim >= 0.8) {
-            state.scores[q.stage]++;
-            state.speakResults.push("great");
-            finishSpeak(q, "🎉 WOW, perfect! You said <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b> just like a Korean speaker!", true, $("btnMic"));
-          } else if (bestSim >= 0.45) {
-            state.scores[q.stage]++;
-            state.speakResults.push("close");
-            finishSpeak(q, "🌟 Very close! The answer was <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b>. Your Korean sounds great!", true, $("btnMic"));
-          } else {
-            state.speakResults.push("tried");
-            finishSpeak(q, "💪 Good try for speaking up! The sentence was <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b>. Tap 🔊 to hear it once more and try again next time!", false);
-          }
-        });
-
-        recognition.onerror = wrap(function (ev) {
+        recognition.onerror = function (ev) {
           var err = ev && ev.error;
+          var heardBox = $("heardBox");
           if (err === "not-allowed" || err === "service-not-allowed") {
+            stopListening(false);
             showMicBlocked(q);
           } else if (err === "network") {
+            stopListening(false);
             heardBox.className = "heard-box show";
             heardBox.innerHTML = "Listening needs the internet, and the connection hiccuped just now. Check the Wi-Fi and tap the microphone to try again! 📶";
           } else if (err === "audio-capture") {
+            stopListening(false);
             heardBox.className = "heard-box show";
             heardBox.innerHTML = "This device doesn't have a microphone the page can use. Say <b>“" + escapeHtml(q.sentence) + "”</b> out loud anyway, then tap the button below! 😊";
             creditSpokenOffer(q);
-          } else if (err === "no-speech") {
-            heardBox.className = "heard-box show";
-            heardBox.innerHTML = "I didn't hear anything that time. Tap the microphone and try again — speak nice and loud! 📣";
-          } else {
-            heardBox.className = "heard-box show";
-            heardBox.innerHTML = "Hmm, the microphone didn't catch that. Computer ears are silly sometimes! Tap the microphone and try once more, or tap Skip. 😊";
           }
-        });
+          // "no-speech" and "aborted" fall through to onend below.
+        };
 
         recognition.onend = function () {
-          if (!done) {
-            done = true;
-            if (safetyTimer) clearTimeout(safetyTimer);
-            listening = false;
-            $("btnMic").classList.remove("recording");
-            $("micLabel").textContent = "Tap and say it!";
-            if (!state.answered && !$("heardBox").classList.contains("show")) {
-              heardBox.className = "heard-box show";
-              heardBox.innerHTML = "I didn't hear anything that time. Tap the microphone and try again — speak nice and loud! 📣";
-            }
+          if (!recWanted) return; // stopped on purpose — already handled
+          // The browser cut the microphone off by itself (phones do this
+          // a lot, sometimes after a single syllable). If words were
+          // heard and this keeps happening, wrap up with what we have;
+          // otherwise quietly start listening again so she can finish
+          // the whole sentence.
+          var heard = (recFinalText + recInterimText).replace(/\s+/g, "");
+          recRestarts++;
+          if ((heard && recRestarts >= 3) || recRestarts > 8) {
+            stopListening(true);
+          } else {
+            startRecognitionOnce();
           }
         };
 
         try {
           recognition.start();
-          // Safety net: if the recognizer hangs with no result, stop it so
-          // the friendly "didn't hear anything" message appears.
-          safetyTimer = setTimeout(function () {
-            if (!done) { try { recognition.stop(); } catch (e) {} }
-          }, 12000);
         } catch (e) {
-          listening = false;
-          $("btnMic").classList.remove("recording");
-          $("micLabel").textContent = "Tap and say it!";
+          // Already running — the next onend will sort things out.
+        }
+      }
+
+      /* While she talks, show the words appearing so she can see the
+         microphone is really listening to the whole sentence. */
+      function showHeardSoFar() {
+        var text = (recFinalText + " " + recInterimText).replace(/\s+/g, " ").trim();
+        if (!text) return;
+        var heardBox = $("heardBox");
+        heardBox.className = "heard-box show";
+        heardBox.innerHTML = "I hear you… keep going!<span class='heard-kr kr'></span>";
+        heardBox.querySelector(".heard-kr").textContent = "“" + text + "”";
+      }
+
+      /* Once she stops talking for a couple of seconds after saying
+         something complete, finish up on our own — no extra tap needed. */
+      function pokeSilenceTimer() {
+        if (recSilenceTimer) clearTimeout(recSilenceTimer);
+        recSilenceTimer = setTimeout(function () {
+          if (listening && recFinalText.replace(/\s+/g, "")) stopListening(true);
+        }, 2600);
+      }
+
+      function stopListening(evaluateIt) {
+        recWanted = false;
+        listening = false;
+        micStarting = false;
+        if (recSilenceTimer) { clearTimeout(recSilenceTimer); recSilenceTimer = null; }
+        if (recHardTimer) { clearTimeout(recHardTimer); recHardTimer = null; }
+        if (recognition) {
+          recognition.onend = null;
+          try { recognition.stop(); } catch (e) {}
+          recognition = null;
+        }
+        $("btnMic").classList.remove("recording");
+        $("micLabel").textContent = "Tap and say it!";
+        if (evaluateIt) evaluateSpeech();
+      }
+
+      function cancelListening() {
+        if (listening || recWanted) stopListening(false);
+        micStarting = false;
+      }
+
+      function evaluateSpeech() {
+        var q = recTarget;
+        if (!q || state.answered) return;
+        var heardBox = $("heardBox");
+        var best = (recFinalText + " " + recInterimText).replace(/\s+/g, " ").trim();
+        if (!best) {
           heardBox.className = "heard-box show";
-          heardBox.innerHTML = "The microphone couldn't start just now. Tap it once more, or tap Skip to keep playing. 😊";
+          heardBox.innerHTML = "I didn't hear anything that time. Tap the microphone and try again — speak nice and loud! 📣";
+          return;
+        }
+        var bestSim = similarity(best, q.sentence);
+        state.answered = true;
+        heardBox.className = "heard-box show";
+        heardBox.innerHTML = "The microphone heard:<span class='heard-kr kr'></span>";
+        heardBox.querySelector(".heard-kr").textContent = "“" + best + "”";
+
+        if (bestSim >= 0.8) {
+          state.scores[q.stage]++;
+          state.speakResults.push("great");
+          finishSpeak(q, "🎉 WOW, perfect! You said <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b> just like a Korean speaker!", true, $("btnMic"));
+        } else if (bestSim >= 0.45) {
+          state.scores[q.stage]++;
+          state.speakResults.push("close");
+          finishSpeak(q, "🌟 Very close! The answer was <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b>. Your Korean sounds great!", true, $("btnMic"));
+        } else {
+          state.speakResults.push("tried");
+          finishSpeak(q, "💪 Good try for speaking up! The sentence was <b class='kr-inline'>“" + escapeHtml(q.sentence) + "”</b>. Tap 🔊 to hear it once more and try again next time!", false);
         }
       }
 
