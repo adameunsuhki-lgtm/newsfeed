@@ -76,18 +76,23 @@
       color: var(--fg);
       background: linear-gradient(160deg, var(--bg0), var(--bg1) 55%, var(--bg0));
       display: flex;
-      align-items: flex-start;
+      align-items: stretch;
       justify-content: center;
-      padding: 1.25rem 1rem 2rem;
+      height: 100dvh;
+      padding: 1rem;
       -webkit-tap-highlight-color: transparent;
     }
     main {
-      width: min(26rem, 100%);
+      width: 100%;
       text-align: center;
-      margin-top: 1.25rem;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
     .header {
-      margin-bottom: 1.35rem;
+      margin-bottom: 1rem;
+      flex: 0 0 auto;
     }
     h1 {
       font-size: 1.45rem;
@@ -114,9 +119,21 @@
     }
     h1, p, a, button, label, input { word-break: keep-all; overflow-wrap: anywhere; }
     .links {
+      flex: 1 1 auto;
+      min-height: 0;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      grid-auto-rows: 1fr;
       gap: 0.75rem;
+    }
+    .card.dragging {
+      opacity: 0.45;
+      cursor: grabbing;
+    }
+    .card {
+      cursor: grab;
+      -webkit-user-select: none;
+      user-select: none;
     }
     .card {
       position: relative;
@@ -125,7 +142,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.28rem;
-      min-height: 7.25rem;
+      min-height: 5rem;
       padding: 1rem 0.75rem 0.95rem;
       border-radius: 1.1rem;
       background: var(--card);
@@ -284,8 +301,7 @@
     }
     [data-theme="dark"] .btn-add { color: #0f172a; background: #fafafa; }
     @media (min-width: 420px) {
-      main { margin-top: 2rem; }
-      .card { min-height: 7.75rem; }
+      .card { min-height: 5.5rem; }
     }
 
     .theme-toggle {
@@ -372,6 +388,7 @@
   <script>
 (function () {
   var STORAGE_KEY = 'hub_custom_links';
+  var ORDER_KEY = 'hub_card_order';
   var SYNC_URL = 'https://hub-links.adameunsuhki.workers.dev/links';
   var WRITE_KEY = '1c1493667485e3966fd96268a8f244dd';
   var dateEl = document.getElementById('today-date');
@@ -506,6 +523,8 @@
       a.href = item.url;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
+      a.draggable = true;
+      a.dataset.key = item.url;
 
       var icon = document.createElement('span');
       icon.className = 'icon';
@@ -518,6 +537,7 @@
         img.height = 40;
         img.decoding = 'async';
         img.referrerPolicy = 'no-referrer';
+        img.draggable = false;
         img.src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=128';
         img.addEventListener('error', function () {
           while (icon.firstChild) icon.removeChild(icon.firstChild);
@@ -567,6 +587,7 @@
       frag.appendChild(a);
     });
     parent.insertBefore(frag, addBtn);
+    applyOrder();
   }
 
   function fetchLinks() {
@@ -655,6 +676,113 @@
     render(list);
     pushLinks(list);
   });
+
+  var linksEl = document.getElementById('links');
+
+  function loadOrder() {
+    try {
+      var raw = localStorage.getItem(ORDER_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveOrderFromDom() {
+    var keys = [];
+    var cards = linksEl.querySelectorAll('.card');
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].dataset && cards[i].dataset.key) keys.push(cards[i].dataset.key);
+    }
+    try { localStorage.setItem(ORDER_KEY, JSON.stringify(keys)); } catch (e) {}
+  }
+
+  function applyOrder() {
+    var order = loadOrder();
+    if (!order.length) return;
+    var cards = Array.prototype.slice.call(linksEl.querySelectorAll('.card'));
+    if (!cards.length) return;
+    function rank(el) {
+      var idx = order.indexOf(el.dataset ? el.dataset.key : null);
+      return idx === -1 ? order.length : idx;
+    }
+    cards.sort(function (x, y) { return rank(x) - rank(y); });
+    for (var i = 0; i < cards.length; i++) linksEl.appendChild(cards[i]);
+    linksEl.appendChild(form);
+  }
+
+  addBtn.draggable = true;
+  addBtn.dataset.key = 'add';
+
+  var dragEl = null;
+  var dragMoved = false;
+  var suppressClick = false;
+
+  linksEl.addEventListener('dragstart', function (ev) {
+    var card = ev.target && ev.target.closest ? ev.target.closest('.card') : null;
+    if (!card) return;
+    if (ev.target.closest && ev.target.closest('.del')) {
+      ev.preventDefault();
+      return;
+    }
+    dragEl = card;
+    dragMoved = false;
+    card.classList.add('dragging');
+    try {
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', card.dataset.key || '');
+    } catch (e) {}
+  });
+
+  linksEl.addEventListener('dragover', function (ev) {
+    if (!dragEl) return;
+    ev.preventDefault();
+    try { ev.dataTransfer.dropEffect = 'move'; } catch (e) {}
+    var target = ev.target && ev.target.closest ? ev.target.closest('.card') : null;
+    if (!target || target === dragEl || target.parentNode !== linksEl) return;
+    var rect = target.getBoundingClientRect();
+    var midY = rect.top + rect.height / 2;
+    var after;
+    if (ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+      after = ev.clientX > rect.left + rect.width / 2;
+    } else {
+      after = ev.clientY > midY;
+    }
+    if (after) {
+      if (target.nextElementSibling !== dragEl) {
+        linksEl.insertBefore(dragEl, target.nextElementSibling);
+        dragMoved = true;
+      }
+    } else {
+      if (target.previousElementSibling !== dragEl) {
+        linksEl.insertBefore(dragEl, target);
+        dragMoved = true;
+      }
+    }
+  });
+
+  document.addEventListener('dragend', function () {
+    if (!dragEl) return;
+    dragEl.classList.remove('dragging');
+    linksEl.appendChild(form);
+    saveOrderFromDom();
+    dragEl = null;
+    if (dragMoved) {
+      suppressClick = true;
+      setTimeout(function () { suppressClick = false; }, 80);
+    }
+    dragMoved = false;
+  });
+
+  linksEl.addEventListener('click', function (ev) {
+    if (suppressClick) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      suppressClick = false;
+    }
+  }, true);
 
   var THEME_KEY = 'hub_theme';
   var themeBtn = document.getElementById('theme-toggle');
