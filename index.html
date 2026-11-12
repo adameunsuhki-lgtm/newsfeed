@@ -431,19 +431,28 @@
 
   function formatToday() {
     try {
-      return new Intl.DateTimeFormat('ko-KR', {
+      var now = new Date();
+      var datePart = new Intl.DateTimeFormat('ko-KR', {
         timeZone: 'America/Los_Angeles',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         weekday: 'short'
-      }).format(new Date());
+      }).format(now);
+      var timePart = new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'America/Los_Angeles',
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(now);
+      return datePart + ' · ' + timePart + ' (서부시간)';
     } catch (e) {
       var d = new Date();
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
   }
-  dateEl.textContent = formatToday();
+  function tickClock() { dateEl.textContent = formatToday(); }
+  tickClock();
+  setInterval(tickClock, 15000);
 
   function showToast(msg) {
     if (!toastEl) return;
