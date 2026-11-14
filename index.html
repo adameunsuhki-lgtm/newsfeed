@@ -245,7 +245,10 @@
     .links.editing .card {
       outline: 1.5px dashed color-mix(in srgb, var(--ring) 55%, transparent);
       outline-offset: -7px;
-      touch-action: none;
+      /* Allow vertical scrolling in editing mode; a touch drag is armed by
+         long-press instead (see pointer handlers), which then opts the
+         dragged card out of scrolling for that gesture. */
+      touch-action: pan-y;
     }
     .card-addlink {
       display: none;
@@ -501,6 +504,8 @@
   var LEGACY_ORDER_KEY = 'hub_card_order';
   var SYNC_URL = 'https://hub-links.adameunsuhki.workers.dev/links';
   var WRITE_KEY = '1c1493667485e3966fd96268a8f244dd';
+  var ORDER_MARKER = { name: '__hub_order_v2__', url: 'https://example.com/#hub-order-v2' };
+  var serverOrderSynced = false;
   var dateEl = document.getElementById('today-date');
   var addBtn = document.getElementById('add-btn');
   var form = document.getElementById('add-form');
@@ -565,8 +570,11 @@
   // Card order lives in the synced list itself (array order = card order),
   // so every device renders the same order. Older versions kept a separate
   // per-device order in localStorage ('hub_card_order'); if one is left over,
-  // it is applied once to the synced list, pushed back to the server, and
-  // then dropped (see finishSync).
+  // it may be applied once — but only while the server order is still the
+  // one this device last synced. Once any device has written with the
+  // order-synced code (marked by ORDER_MARKER in the stored list) or the
+  // server order has moved on, a leftover legacy order is dropped, never
+  // applied over the newer server order (see finishSync).
   var legacyOrderKeys = null;
   try {
     var legacyRaw = localStorage.getItem(LEGACY_ORDER_KEY);
@@ -739,6 +747,26 @@
     parent.insertBefore(frag, addBtn);
   }
 
+  // The stored list carries one extra marker entry (never rendered): its
+  // presence means the stored order was written by the order-synced code,
+  // so a leftover per-device legacy order must never overwrite it.
+  function isOrderMarker(item) {
+    return !!item && item.name === ORDER_MARKER.name && item.url === ORDER_MARKER.url;
+  }
+  function stripOrderMarker(list) {
+    return (list || []).filter(function (item) { return !isOrderMarker(item); });
+  }
+  function withOrderMarker(list) {
+    return stripOrderMarker(list).concat([{ name: ORDER_MARKER.name, url: ORDER_MARKER.url }]);
+  }
+  function sameUrlOrder(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!a[i] || !b[i] || a[i].url !== b[i].url) return false;
+    }
+    return true;
+  }
+
   function fetchLinks() {
     return fetch(SYNC_URL, {
       method: 'GET',
@@ -749,7 +777,8 @@
       return res.json();
     }).then(function (data) {
       if (!Array.isArray(data)) throw new Error('bad payload');
-      return dedupeByUrl(data);
+      if (data.some(isOrderMarker)) serverOrderSynced = true;
+      return dedupeByUrl(stripOrderMarker(data));
     });
   }
 
@@ -763,12 +792,15 @@
         'Content-Type': 'application/json',
         'X-Hub-Write-Key': WRITE_KEY
       },
-      body: JSON.stringify(clean)
+      body: JSON.stringify(withOrderMarker(clean))
     }).then(function (res) {
       if (!res.ok) throw new Error('put ' + res.status);
       return res.json();
     }).then(function (data) {
-      var server = dedupeByUrl(Array.isArray(data) ? data : clean);
+      serverOrderSynced = true;
+      var raw = Array.isArray(data) ? data : clean;
+      if (raw.some(isOrderMarker)) serverOrderSynced = true;
+      var server = dedupeByUrl(stripOrderMarker(raw));
       saveLinks(server);
       return server;
     }).catch(function (err) {
@@ -777,9 +809,18 @@
     });
   }
 
-  function finishSync(list) {
+  function finishSync(list, cacheBefore, fetchedHadMarker) {
     var keys = takeLegacyOrderKeys();
     if (!keys) {
+      render(list);
+      return list;
+    }
+    // Apply a leftover legacy order only while the server order is still
+    // the one this device last synced: if the fetched list already carried
+    // the order marker, or its order no longer matches this device's
+    // pre-sync cache, another device has synced a newer order and the
+    // stale local order is dropped instead of overwriting it.
+    if (fetchedHadMarker || !sameUrlOrder(list, cacheBefore)) {
       render(list);
       return list;
     }
@@ -795,16 +836,18 @@
   }
 
   function syncFromServer() {
+    var cacheBefore = loadLinks();
     return fetchLinks().then(function (server) {
+      var fetchedHadMarker = serverOrderSynced;
       var local = loadLinks();
       if (server.length === 0 && local.length > 0) {
         var merged = dedupeByUrl(local.concat(server));
         return pushLinks(merged).then(function (uploaded) {
-          return finishSync(uploaded);
+          return finishSync(uploaded, cacheBefore, fetchedHadMarker);
         });
       }
       saveLinks(server);
-      return finishSync(server);
+      return finishSync(server, cacheBefore, fetchedHadMarker);
     }).catch(function () {
       showToast('동기화 실패 · 로컬 목록 표시');
     });
@@ -814,6 +857,10 @@
     form.classList.add('open');
     nameInput.value = '';
     urlInput.value = '';
+    if (form.scrollIntoView) {
+      try { form.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      catch (e) { form.scrollIntoView(); }
+    }
     nameInput.focus();
   }
 
@@ -950,6 +997,24 @@
     if (editing) ev.preventDefault();
   });
 
+  // Touch dragging is armed by long-press, so a swipe that starts on a
+  // card still scrolls the page in editing mode (cards cover the screen).
+  // Moving more than a few px before the press timer fires means the user
+  // is scrolling, and the pending drag is cancelled.
+  var PRESS_MS = 260;
+  function armPointerDrag() {
+    if (!pDrag || pDrag.active) return;
+    pDrag.timer = null;
+    pDrag.active = true;
+    pDrag.el.classList.add('dragging');
+    pDrag.el.style.touchAction = 'none';
+    try { pDrag.el.setPointerCapture(pDrag.id); } catch (e) {}
+  }
+  function cancelPendingDrag() {
+    if (pDrag && pDrag.timer) clearTimeout(pDrag.timer);
+    pDrag = null;
+  }
+
   linksEl.addEventListener('pointerdown', function (ev) {
     if (!editing) return;
     if (ev.pointerType === 'mouse') return;
@@ -962,19 +1027,23 @@
       id: ev.pointerId,
       startX: ev.clientX,
       startY: ev.clientY,
-      active: false
+      active: false,
+      timer: setTimeout(armPointerDrag, PRESS_MS)
     };
   });
+
+  // While a touch drag is armed, keep the page from scrolling with it.
+  linksEl.addEventListener('touchmove', function (ev) {
+    if (pDrag && pDrag.active) ev.preventDefault();
+  }, { passive: false });
 
   linksEl.addEventListener('pointermove', function (ev) {
     if (!pDrag || ev.pointerId !== pDrag.id) return;
     if (!pDrag.active) {
       var dx = ev.clientX - pDrag.startX;
       var dy = ev.clientY - pDrag.startY;
-      if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return;
-      pDrag.active = true;
-      pDrag.el.classList.add('dragging');
-      try { pDrag.el.setPointerCapture(ev.pointerId); } catch (e) {}
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) cancelPendingDrag();
+      return;
     }
     ev.preventDefault();
     var under = document.elementFromPoint(ev.clientX, ev.clientY);
@@ -1001,8 +1070,10 @@
   function endPointerDrag(ev) {
     if (!pDrag) return;
     if (ev && ev.pointerId !== undefined && ev.pointerId !== pDrag.id) return;
+    if (pDrag.timer) clearTimeout(pDrag.timer);
     var wasActive = pDrag.active;
     pDrag.el.classList.remove('dragging');
+    pDrag.el.style.touchAction = '';
     pDrag = null;
     if (wasActive) {
       linksEl.appendChild(form);
