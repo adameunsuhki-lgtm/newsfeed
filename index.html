@@ -498,7 +498,7 @@
   <script>
 (function () {
   var STORAGE_KEY = 'hub_custom_links';
-  var ORDER_KEY = 'hub_card_order';
+  var LEGACY_ORDER_KEY = 'hub_card_order';
   var SYNC_URL = 'https://hub-links.adameunsuhki.workers.dev/links';
   var WRITE_KEY = '1c1493667485e3966fd96268a8f244dd';
   var dateEl = document.getElementById('today-date');
@@ -560,6 +560,37 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     } catch (e) {}
+  }
+
+  // Card order lives in the synced list itself (array order = card order),
+  // so every device renders the same order. Older versions kept a separate
+  // per-device order in localStorage ('hub_card_order'); if one is left over,
+  // it is applied once to the synced list, pushed back to the server, and
+  // then dropped (see finishSync).
+  var legacyOrderKeys = null;
+  try {
+    var legacyRaw = localStorage.getItem(LEGACY_ORDER_KEY);
+    if (legacyRaw) {
+      var legacyParsed = JSON.parse(legacyRaw);
+      if (Array.isArray(legacyParsed) && legacyParsed.length) legacyOrderKeys = legacyParsed;
+    }
+  } catch (e) {}
+
+  function takeLegacyOrderKeys() {
+    if (!legacyOrderKeys) return null;
+    var keys = legacyOrderKeys;
+    legacyOrderKeys = null;
+    try { localStorage.removeItem(LEGACY_ORDER_KEY); } catch (e) {}
+    return keys;
+  }
+
+  function sortListByKeys(list, keys) {
+    var decorated = list.map(function (item, i) {
+      var idx = keys.indexOf(item.url);
+      return { item: item, rank: idx === -1 ? keys.length + i : idx, seq: i };
+    });
+    decorated.sort(function (a, b) { return (a.rank - b.rank) || (a.seq - b.seq); });
+    return decorated.map(function (d) { return d.item; });
   }
 
   function normalizeUrl(url) {
@@ -706,7 +737,6 @@
       frag.appendChild(a);
     });
     parent.insertBefore(frag, addBtn);
-    applyOrder();
   }
 
   function fetchLinks() {
@@ -747,19 +777,34 @@
     });
   }
 
+  function finishSync(list) {
+    var keys = takeLegacyOrderKeys();
+    if (!keys) {
+      render(list);
+      return list;
+    }
+    var reordered = dedupeByUrl(sortListByKeys(list, keys));
+    saveLinks(reordered);
+    render(reordered);
+    return pushLinks(reordered).then(function (uploaded) {
+      render(uploaded);
+      return uploaded;
+    }).catch(function () {
+      return reordered;
+    });
+  }
+
   function syncFromServer() {
     return fetchLinks().then(function (server) {
       var local = loadLinks();
       if (server.length === 0 && local.length > 0) {
         var merged = dedupeByUrl(local.concat(server));
         return pushLinks(merged).then(function (uploaded) {
-          render(uploaded);
-          return uploaded;
+          return finishSync(uploaded);
         });
       }
       saveLinks(server);
-      render(server);
-      return server;
+      return finishSync(server);
     }).catch(function () {
       showToast('동기화 실패 · 로컬 목록 표시');
     });
@@ -810,38 +855,29 @@
 
   var linksEl = document.getElementById('links');
 
-  function loadOrder() {
-    try {
-      var raw = localStorage.getItem(ORDER_KEY);
-      if (!raw) return [];
-      var parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function saveOrderFromDom() {
-    var keys = [];
-    var cards = linksEl.querySelectorAll('.card');
+  // After a drag reorder, read the new card order from the DOM, rebuild the
+  // link list in that order, cache it locally, and push it to the server so
+  // the same order shows on every device. If the push fails, pushLinks
+  // shows a toast and the new order stays in the local cache only.
+  function persistOrderFromDom() {
+    var current = loadLinks();
+    var byUrl = {};
+    current.forEach(function (item) { byUrl[item.url] = item; });
+    var ordered = [];
+    var cards = linksEl.querySelectorAll('.card-custom');
     for (var i = 0; i < cards.length; i++) {
-      if (cards[i].dataset && cards[i].dataset.key) keys.push(cards[i].dataset.key);
+      var key = cards[i].dataset ? cards[i].dataset.key : null;
+      if (key && byUrl[key]) {
+        ordered.push(byUrl[key]);
+        delete byUrl[key];
+      }
     }
-    try { localStorage.setItem(ORDER_KEY, JSON.stringify(keys)); } catch (e) {}
-  }
-
-  function applyOrder() {
-    var order = loadOrder();
-    if (!order.length) return;
-    var cards = Array.prototype.slice.call(linksEl.querySelectorAll('.card'));
-    if (!cards.length) return;
-    function rank(el) {
-      var idx = order.indexOf(el.dataset ? el.dataset.key : null);
-      return idx === -1 ? order.length : idx;
-    }
-    cards.sort(function (x, y) { return rank(x) - rank(y); });
-    for (var i = 0; i < cards.length; i++) linksEl.appendChild(cards[i]);
-    linksEl.appendChild(form);
+    current.forEach(function (item) {
+      if (byUrl[item.url]) ordered.push(item);
+    });
+    var clean = dedupeByUrl(ordered);
+    saveLinks(clean);
+    pushLinks(clean).catch(function () {});
   }
 
   addBtn.draggable = true;
@@ -898,7 +934,7 @@
     if (!dragEl) return;
     dragEl.classList.remove('dragging');
     linksEl.appendChild(form);
-    saveOrderFromDom();
+    persistOrderFromDom();
     dragEl = null;
     if (dragMoved) {
       suppressClick = true;
@@ -970,7 +1006,7 @@
     pDrag = null;
     if (wasActive) {
       linksEl.appendChild(form);
-      saveOrderFromDom();
+      persistOrderFromDom();
       suppressClick = true;
       setTimeout(function () { suppressClick = false; }, 120);
     }
