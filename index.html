@@ -381,7 +381,7 @@
 
     .weather {
       flex: 0 0 auto;
-      margin-top: 1rem;
+      margin: 0 0 1rem;
       padding: 0.9rem 1rem;
       border-radius: 1.1rem;
       background: var(--card);
@@ -458,6 +458,15 @@
       <h1>홈</h1>
       <div class="date" id="today-date"></div>
     </header>
+    <section class="weather" id="weather" aria-label="Fort Irwin 날씨">
+      <div class="weather-main">
+        <span class="weather-icon" id="weather-icon" aria-hidden="true">🌤️</span>
+        <div class="weather-text">
+          <div class="weather-title">Fort Irwin 현재 날씨</div>
+          <div class="weather-desc" id="weather-desc">불러오는 중…</div>
+        </div>
+      </div>
+    </section>
     <div class="links" id="links">
       <button type="button" class="card card-add" id="add-btn" aria-label="편집">
         <span class="icon" aria-hidden="true">✎</span>
@@ -485,15 +494,6 @@
         </div>
       </form>
     </div>
-    <section class="weather" id="weather" aria-label="Fort Irwin 날씨">
-      <div class="weather-main">
-        <span class="weather-icon" id="weather-icon" aria-hidden="true">🌤️</span>
-        <div class="weather-text">
-          <div class="weather-title">Fort Irwin 현재 날씨</div>
-          <div class="weather-desc" id="weather-desc">불러오는 중…</div>
-        </div>
-      </div>
-    </section>
   </main>
   <script>
 (function () {
